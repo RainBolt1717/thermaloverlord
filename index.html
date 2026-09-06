@@ -1,1 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scan for Thermal Overlord</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:#fff;font-family:monospace;max-width:400px;margin:auto}
+h1{color:#00e5ff;font-size:16px;padding:12px 16px;background:#0d0d0d}
+.wrap{position:relative;width:100%;overflow:hidden}
+#video{width:100%;display:block;max-height:70vw;object-fit:cover}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.info{padding:12px 16px;background:#0d0d0d;min-height:60px}
+#status{color:#888;font-size:13px;text-align:center;padding:8px 0}
+#result{display:none}
+.card{background:#111;border:1px solid #222;border-radius:8px;padding:14px;margin:10px 0}
+.lbl{color:#555;font-size:11px;margin-bottom:4px}
+.pname{font-size:14px;color:#fff;line-height:1.4;margin-bottom:10px}
+.big{font-size:28px;color:#00e5ff;font-weight:bold;margin-bottom:4px}
+.cdwrap{text-align:center;margin:10px 0;position:relative;display:inline-block;left:50%;transform:translateX(-50%)}
+.cdtxt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;color:#ff4444}
+.btns{padding:0 0 16px}
+button{padding:12px;border-radius:4px;border:none;cursor:pointer;font-size:14px;font-family:monospace;width:100%;font-weight:bold;margin-top:8px}
+.cancel{background:#330000;color:#ff4444;border:1px solid #ff4444}
+.again{background:#1a0033;color:#cc88ff;border:1px solid #cc88ff}
+.iprow{display:flex;gap:8px;margin-bottom:12px}
+input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-radius:4px;font-size:14px;font-family:monospace}
+</style>
+</head>
+<body>
+<h1>&#128293; Thermal Overlord Scanner</h1>
+<div style="padding:10px 16px;background:#0d0d0d">
+  <div class="lbl">OVEN IP ADDRESS</div>
+  <div class="iprow">
+    <input id="ip" type="text" placeholder="192.168.4.1" style="flex:1">
+    <button style="width:auto;padding:8px 12px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:4px" onclick="saveIP()">SAVE</button>
+  </div>
+</div>
+<div class="wrap">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="overlay"></canvas>
+</div>
+<div class="info">
+  <div id="status">Starting camera...</div>
+  <div id="result">
+    <div class="card">
+      <div class="lbl">PRODUCT</div>
+      <div class="pname" id="pname"></div>
+      <div class="lbl">TEMPERATURE</div>
+      <div class="big" id="ptemp"></div>
+      <div class="lbl" style="margin-top:8px">COOK TIME</div>
+      <div class="big" id="ptimer"></div>
+    </div>
+    <div class="cdwrap">
+      <canvas id="cdcanvas" width="100" height="100"></canvas>
+      <div class="cdtxt" id="cdnum">5</div>
+    </div>
+  </div>
+</div>
+<div class="btns" id="btns" style="display:none;padding:0 16px 16px">
+  <button class="cancel" onclick="cancelIt()">CANCEL</button>
+  <button class="again" onclick="rescan()">SCAN AGAIN</button>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.6/umd/index.min.js"></script>
+<script>
+const fallback=[
+  {kw:['pizza'],t:220,m:18},
+  {kw:['fries','chips','wedges'],t:200,m:22},
+  {kw:['chicken','nugget','wing','tender'],t:190,m:25},
+  {kw:['fish','seafood','shrimp','prawn'],t:200,m:20},
+  {kw:['lasagna','lasagne','pasta bake'],t:180,m:45},
+  {kw:['pastry','pie','quiche','puff'],t:200,m:20},
+  {kw:['burger','patty'],t:200,m:15},
+  {kw:['spring roll','samosa','dumpling'],t:200,m:15},
+  {kw:['sausage','hot dog'],t:190,m:20},
+  {kw:['vegetable','veggie'],t:180,m:15}
+];
+
+const video=document.getElementById('video');
+const overlay=document.getElementById('overlay');
+const ctx=overlay.getContext('2d');
+let scanning=true,reader=null,cdInterval=null;
+let foundTemp=0,foundMins=0;
+let scanLineY=0,scanLineDir=1;
+
+// Load saved IP
+const ipInput=document.getElementById('ip');
+ipInput.value=localStorage.getItem('ovenIP')||'192.168.4.1';
+function saveIP(){localStorage.setItem('ovenIP',ipInput.value);ipInput.blur();}
+
+function syncCanvas(){
+  overlay.width=video.videoWidth||overlay.offsetWidth;
+  overlay.height=video.videoHeight||overlay.offsetHeight;
+}
+video.addEventListener('loadedmetadata',syncCanvas);
+window.addEventListener('resize',syncCanvas);
+
+navigator.mediaDevices.getUserMedia({
+  video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
+}).then(stream=>{
+  video.srcObject=stream;
+  video.play();
+  document.getElementById('status').textContent='Point camera at barcode on packaging...';
+  startScanLoop();
+}).catch(e=>{
+  document.getElementById('status').textContent='Camera error: '+e.message;
+});
+
+function startScanLoop(){
+  reader=new ZXing.BrowserMultiFormatReader();
+  reader.decodeFromVideoDevice(null,video,(result,err)=>{
+    if(!scanning||!result)return;
+    if(result){
+      scanning=false;
+      reader.reset();
+      drawBarcodeBox(result.getResultPoints());
+      setTimeout(()=>lookup(result.getText()),300);
+    }else{
+      drawScanning();
+    }
+  });
+}
+
+function drawScanning(){
+  syncCanvas();
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+  const w=overlay.width,h=overlay.height;
+  const mx=w*0.1,my=h*0.08;
+  const bw=w-mx*2,bh=h-my*2,bl=40;
+  ctx.strokeStyle='rgba(255,165,0,0.85)';
+  ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(mx,my+bl);ctx.lineTo(mx,my);ctx.lineTo(mx+bl,my);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mx+bw-bl,my);ctx.lineTo(mx+bw,my);ctx.lineTo(mx+bw,my+bl);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mx,my+bh-bl);ctx.lineTo(mx,my+bh);ctx.lineTo(mx+bl,my+bh);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mx+bw-bl,my+bh);ctx.lineTo(mx+bw,my+bh);ctx.lineTo(mx+bw,my+bh-bl);ctx.stroke();
+  scanLineY+=scanLineDir*1.5;
+  if(scanLineY>bh||scanLineY<0)scanLineDir*=-1;
+  const ly=my+scanLineY;
+  const g=ctx.createLinearGradient(mx,0,mx+bw,0);
+  g.addColorStop(0,'transparent');g.addColorStop(0.2,'rgba(255,165,0,0.6)');
+  g.addColorStop(0.8,'rgba(255,165,0,0.6)');g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;ctx.fillRect(mx,ly-1.5,bw,3);
+}
+
+function drawBarcodeBox(pts){
+  syncCanvas();
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+  if(!pts||pts.length<2)return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(let p of pts){
+    minX=Math.min(minX,p.getX());minY=Math.min(minY,p.getY());
+    maxX=Math.max(maxX,p.getX());maxY=Math.max(maxY,p.getY());
+  }
+  const pad=16;minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+  ctx.fillStyle='rgba(255,165,0,0.18)';
+  ctx.fillRect(minX,minY,maxX-minX,maxY-minY);
+  ctx.strokeStyle='rgba(255,165,0,1)';ctx.lineWidth=3;
+  ctx.strokeRect(minX,minY,maxX-minX,maxY-minY);
+  ctx.fillStyle='rgba(255,165,0,1)';
+  for(let p of pts){ctx.beginPath();ctx.arc(p.getX(),p.getY(),5,0,Math.PI*2);ctx.fill();}
+}
+
+function parseCookText(txt){
+  if(!txt)return null;
+  txt=txt.toLowerCase();
+  let t=null,m=null;
+  let mc=txt.match(/(\d{2,3})\s*(?:\u00b0|degrees?)?\s*c\b/);
+  if(mc)t=parseInt(mc[1]);
+  if(!t){let mf=txt.match(/(\d{3})\s*(?:\u00b0|degrees?)?\s*f\b/);
+    if(mf)t=Math.round((parseInt(mf[1])-32)*5/9);}
+  let mm=txt.match(/(\d+)(?:\s*[-to]\s*\d+)?\s*min/);
+  if(mm)m=parseInt(mm[1]);
+  return(t&&m)?{temp:t,mins:m}:null;
+}
+
+function fallbackLookup(cats){
+  if(!cats)return null;
+  let c=cats.toLowerCase();
+  for(let f of fallback)for(let kw of f.kw)if(c.includes(kw))return{temp:f.t,mins:f.m};
+  return null;
+}
+
+async function lookup(code){
+  document.getElementById('status').textContent='Found '+code+' — looking up...';
+  try{
+    let r=await fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json');
+    let d=await r.json();
+    if(d.status!==1)throw new Error('not found');
+    let p=d.product;
+    let name=p.product_name||p.product_name_en||'Unknown product';
+    let cookTxt=p.preparation_en||p.cooking_instructions||p.preparation||'';
+    let cooking=parseCookText(cookTxt)||fallbackLookup(p.categories_en||p.categories||'');
+    if(!cooking){cooking={temp:180,mins:20};name+=' (default)';}
+    showResult(name,cooking.temp,cooking.mins);
+  }catch(e){
+    showResult('Product (default settings)',180,20);
+  }
+}
+
+function showResult(name,temp,mins){
+  foundTemp=temp;foundMins=mins;
+  document.getElementById('status').style.display='none';
+  document.getElementById('result').style.display='block';
+  document.getElementById('btns').style.display='block';
+  document.getElementById('pname').textContent=name;
+  document.getElementById('ptemp').textContent=temp+'\u00b0C';
+  document.getElementById('ptimer').textContent=mins+' min';
+  startCountdown();
+}
+
+function drawCountdown(n,total){
+  const c=document.getElementById('cdcanvas');
+  const x=c.getContext('2d');
+  const cx=50,cy=50,r=42;
+  x.clearRect(0,0,100,100);
+  x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.strokeStyle='#222';x.lineWidth=8;x.stroke();
+  const prog=1-(n/total);
+  x.beginPath();x.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
+  x.strokeStyle='#ff4444';x.lineWidth=8;x.lineCap='round';x.stroke();
+}
+
+function startCountdown(){
+  const total=5;let n=total;
+  document.getElementById('cdnum').textContent=n;
+  drawCountdown(n,total);
+  cdInterval=setInterval(()=>{
+    n--;
+    document.getElementById('cdnum').textContent=n;
+    drawCountdown(n,total);
+    if(n<=0){clearInterval(cdInterval);fireOven();}
+  },1000);
+}
+
+function fireOven(){
+  const ip=ipInput.value||'192.168.4.1';
+  // Navigate to ESP32 — HTTP redirect from HTTPS is allowed for top-level navigation
+  window.location.href='http://'+ip+'/scanned?temp='+foundTemp+'&timer='+foundMins;
+}
+
+function cancelIt(){
+  if(cdInterval)clearInterval(cdInterval);
+  stopCamera();
+  const ip=ipInput.value||'192.168.4.1';
+  window.location.href='http://'+ip+'/';
+}
+
+function stopCamera(){
+  if(reader)reader.reset();
+  if(video.srcObject)video.srcObject.getTracks().forEach(t=>t.stop());
+}
+
+function rescan(){
+  if(cdInterval)clearInterval(cdInterval);
+  scanning=true;
+  document.getElementById('result').style.display='none';
+  document.getElementById('btns').style.display='none';
+  document.getElementById('status').style.display='block';
+  document.getElementById('status').textContent='Point camera at barcode...';
+  startScanLoop();
+}
+</script>
+</body>
+</html>
