@@ -12,59 +12,98 @@ h1{color:#00e5ff;font-size:16px;padding:12px 16px;background:#0d0d0d}
 .iprow{display:flex;gap:8px}
 input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-radius:4px;font-size:14px;font-family:monospace;flex:1}
 .savebtn{padding:8px 12px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:4px;cursor:pointer;font-family:monospace;font-weight:bold;white-space:nowrap}
+.torch{background:#1a1400;color:#ffcc00;border:1px solid #ffcc00;width:100%;padding:9px;border-radius:4px;cursor:pointer;font-family:monospace;font-weight:bold}
 .wrap{position:relative;width:100%;overflow:hidden;background:#111}
-#video{width:100%;display:block;max-height:70vw;object-fit:cover}
+#video{width:100%;display:block;max-height:75vw;object-fit:cover}
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.info{padding:12px 16px;background:#0d0d0d;min-height:60px}
-#status{color:#888;font-size:13px;text-align:center;padding:8px 0}
-#result{display:none}
-.card{background:#111;border:1px solid #222;border-radius:8px;padding:14px;margin:10px 0}
-.lbl{color:#555;font-size:11px;margin-bottom:4px}
-.pname{font-size:14px;color:#fff;line-height:1.4;margin-bottom:10px}
-.big{font-size:28px;color:#00e5ff;font-weight:bold;margin-bottom:4px}
+.info{padding:10px 16px;background:#0d0d0d;min-height:48px}
+#status{color:#888;font-size:13px;text-align:center;padding:6px 0}
+
+/* ── Confirm modal ── */
+#modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100;align-items:center;justify-content:center;padding:16px}
+#modal.show{display:flex}
+.modal-box{background:#111;border:1px solid #333;border-radius:12px;max-width:360px;width:100%;overflow:hidden;animation:popIn .2s ease}
+@keyframes popIn{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-img{width:100%;max-height:200px;object-fit:contain;background:#1a1a1a;display:block}
+.modal-img-placeholder{width:100%;height:120px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:40px}
+.modal-body{padding:16px}
+.modal-name{font-size:16px;font-weight:bold;color:#fff;margin-bottom:6px;line-height:1.4}
+.modal-desc{font-size:12px;color:#888;margin-bottom:14px;line-height:1.5;max-height:60px;overflow:hidden}
+.modal-cook{display:flex;gap:10px;margin-bottom:16px}
+.cook-pill{flex:1;background:#0d0d0d;border:1px solid #333;border-radius:8px;padding:10px;text-align:center}
+.cook-val{font-size:22px;font-weight:bold;color:#00e5ff}
+.cook-lbl{font-size:10px;color:#555;margin-top:2px}
+.modal-btns{display:flex;gap:8px}
+.btn-confirm{flex:1;padding:13px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:6px;cursor:pointer;font-size:14px;font-family:monospace;font-weight:bold}
+.btn-cancel{flex:1;padding:13px;background:#330000;color:#ff4444;border:1px solid #ff4444;border-radius:6px;cursor:pointer;font-size:14px;font-family:monospace;font-weight:bold}
+
+/* ── Countdown ── */
 .cdwrap{text-align:center;margin:10px 0;position:relative;display:inline-block;left:50%;transform:translateX(-50%)}
-.cdtxt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;color:#ff4444}
-.btns{padding:0 0 16px;display:none}
+.cdtxt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:bold;color:#ff4444}
+.btns{padding:0 16px 16px;display:none}
 button.action{padding:12px;border-radius:4px;border:none;cursor:pointer;font-size:14px;font-family:monospace;width:100%;font-weight:bold;margin-top:8px}
-.cancel{background:#330000;color:#ff4444;border:1px solid #ff4444}
+.cancel-a{background:#330000;color:#ff4444;border:1px solid #ff4444}
 .again{background:#1a0033;color:#cc88ff;border:1px solid #cc88ff}
-.torch{background:#1a1400;color:#ffcc00;border:1px solid #ffcc00;width:100%;padding:9px;border-radius:4px;cursor:pointer;font-family:monospace;font-weight:bold;margin-bottom:6px}
+#cdarea{display:none;padding:10px 16px;background:#0d0d0d;text-align:center}
 </style>
 </head>
 <body>
+
 <h1>&#128293; Thermal Overlord Scanner</h1>
+
 <div class="topbar">
-  <div class="lbl">OVEN IP ADDRESS</div>
+  <div class="lbl" style="color:#555;font-size:11px">OVEN IP ADDRESS</div>
   <div class="iprow">
     <input id="ip" type="text" placeholder="192.168.4.1">
     <button class="savebtn" onclick="saveIP()">SAVE</button>
   </div>
   <button class="torch" id="torchbtn" onclick="toggleTorch()">&#128294; FLASHLIGHT: OFF</button>
 </div>
+
 <div class="wrap">
   <video id="video" autoplay playsinline muted></video>
   <canvas id="overlay"></canvas>
 </div>
+
 <div class="info">
   <div id="status">Starting camera...</div>
-  <div id="result">
-    <div class="card">
-      <div class="lbl">PRODUCT</div>
-      <div class="pname" id="pname"></div>
-      <div class="lbl">TEMPERATURE</div>
-      <div class="big" id="ptemp"></div>
-      <div class="lbl" style="margin-top:8px">COOK TIME</div>
-      <div class="big" id="ptimer"></div>
-    </div>
-    <div class="cdwrap">
-      <canvas id="cdcanvas" width="100" height="100"></canvas>
-      <div class="cdtxt" id="cdnum">5</div>
-    </div>
+</div>
+
+<div id="cdarea">
+  <div class="cdwrap">
+    <canvas id="cdcanvas" width="90" height="90"></canvas>
+    <div class="cdtxt" id="cdnum">5</div>
   </div>
 </div>
+
 <div class="btns" id="btns">
-  <button class="action cancel" onclick="cancelIt()">CANCEL</button>
+  <button class="action cancel-a" onclick="cancelIt()">CANCEL</button>
   <button class="action again" onclick="rescan()">SCAN AGAIN</button>
+</div>
+
+<!-- Confirm modal -->
+<div id="modal">
+  <div class="modal-box">
+    <div id="modal-img-wrap"></div>
+    <div class="modal-body">
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+      <div class="modal-cook">
+        <div class="cook-pill">
+          <div class="cook-val" id="modal-temp">--</div>
+          <div class="cook-lbl">TEMPERATURE</div>
+        </div>
+        <div class="cook-pill">
+          <div class="cook-val" id="modal-time">--</div>
+          <div class="cook-lbl">COOK TIME</div>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
+        <button class="btn-confirm" onclick="confirmFire()">&#9654; START OVEN</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.6/umd/index.min.js"></script>
@@ -82,26 +121,21 @@ const fallback=[
   {kw:['vegetable','veggie'],t:180,m:15}
 ];
 
-const video=document.getElementById('video');
-const overlay=document.getElementById('overlay');
-const ctx=overlay.getContext('2d');
-let scanning=true,reader=null,cdInterval=null;
-let foundTemp=0,foundMins=0;
-let scanLineY=0,scanLineDir=1;
-let videoTrack=null,torchOn=false;
+const video   = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const ctx     = overlay.getContext('2d');
+let scanning=true, reader=null, cdInterval=null;
+let foundTemp=0, foundMins=0;
+let scanLineY=0, scanLineDir=1;
+let videoTrack=null, torchOn=false;
 
-// Load saved IP, also check URL param
+// IP
 const ipInput=document.getElementById('ip');
 const urlIP=new URLSearchParams(window.location.search).get('ip');
 ipInput.value=urlIP||localStorage.getItem('ovenIP')||'192.168.4.1';
 if(urlIP) localStorage.setItem('ovenIP',urlIP);
-
-function saveIP(){
-  localStorage.setItem('ovenIP',ipInput.value.trim());
-  ipInput.blur();
-}
-
-function getIP(){ return ipInput.value.trim()||'192.168.4.1'; }
+function saveIP(){localStorage.setItem('ovenIP',ipInput.value.trim());ipInput.blur();}
+function getIP(){return ipInput.value.trim()||'192.168.4.1';}
 
 function syncCanvas(){
   overlay.width=video.videoWidth||overlay.offsetWidth;
@@ -110,7 +144,7 @@ function syncCanvas(){
 video.addEventListener('loadedmetadata',syncCanvas);
 window.addEventListener('resize',syncCanvas);
 
-// Start camera
+// Camera
 navigator.mediaDevices.getUserMedia({
   video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
 }).then(stream=>{
@@ -124,10 +158,10 @@ navigator.mediaDevices.getUserMedia({
 });
 
 function toggleTorch(){
-  if(!videoTrack){return;}
+  if(!videoTrack) return;
   torchOn=!torchOn;
   videoTrack.applyConstraints({advanced:[{torch:torchOn}]}).catch(()=>{
-    document.getElementById('torchbtn').textContent='No flashlight on this device';
+    document.getElementById('torchbtn').textContent='No flashlight available';
     torchOn=false;
   });
   document.getElementById('torchbtn').textContent=
@@ -149,73 +183,109 @@ function startScanLoop(){
   });
 }
 
+// ── Scanning overlay — thick brackets + fast line ──────────────
 function drawScanning(){
   syncCanvas();
   ctx.clearRect(0,0,overlay.width,overlay.height);
-  const w=overlay.width,h=overlay.height;
-  const mx=w*0.1,my=h*0.08;
-  const bw=w-mx*2,bh=h-my*2,bl=40;
-  ctx.strokeStyle='rgba(255,165,0,0.85)';
-  ctx.lineWidth=3;ctx.lineCap='round';
-  // corners
+  const w=overlay.width, h=overlay.height;
+  const mx=w*0.08, my=h*0.06;
+  const bw=w-mx*2, bh=h-my*2;
+  const bl=52; // bracket arm length — longer
+  const lw=5;  // line width — thicker
+
+  // Semi-transparent dark surround outside brackets
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.fillRect(0,0,w,my);
+  ctx.fillRect(0,my+bh,w,h-my-bh);
+  ctx.fillRect(0,my,mx,bh);
+  ctx.fillRect(mx+bw,my,w-mx-bw,bh);
+
+  // Corner brackets — thick orange
+  ctx.strokeStyle='rgba(255,150,0,1)';
+  ctx.lineWidth=lw;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+
+  // TL
   ctx.beginPath();ctx.moveTo(mx,my+bl);ctx.lineTo(mx,my);ctx.lineTo(mx+bl,my);ctx.stroke();
+  // TR
   ctx.beginPath();ctx.moveTo(mx+bw-bl,my);ctx.lineTo(mx+bw,my);ctx.lineTo(mx+bw,my+bl);ctx.stroke();
+  // BL
   ctx.beginPath();ctx.moveTo(mx,my+bh-bl);ctx.lineTo(mx,my+bh);ctx.lineTo(mx+bl,my+bh);ctx.stroke();
+  // BR
   ctx.beginPath();ctx.moveTo(mx+bw-bl,my+bh);ctx.lineTo(mx+bw,my+bh);ctx.lineTo(mx+bw,my+bh-bl);ctx.stroke();
-  // scan line
-  scanLineY+=scanLineDir*1.5;
-  if(scanLineY>bh||scanLineY<0)scanLineDir*=-1;
+
+  // Corner glow dots
+  ctx.fillStyle='rgba(255,165,0,0.9)';
+  [[mx,my],[mx+bw,my],[mx,my+bh],[mx+bw,my+bh]].forEach(([px,py])=>{
+    ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);ctx.fill();
+  });
+
+  // Scan line — faster (3.5px/frame) and thicker
+  scanLineY+=scanLineDir*3.5;
+  if(scanLineY>bh||scanLineY<0) scanLineDir*=-1;
   const ly=my+scanLineY;
-  const g=ctx.createLinearGradient(mx,0,mx+bw,0);
-  g.addColorStop(0,'transparent');
-  g.addColorStop(0.2,'rgba(255,165,0,0.6)');
-  g.addColorStop(0.8,'rgba(255,165,0,0.6)');
-  g.addColorStop(1,'transparent');
-  ctx.fillStyle=g;ctx.fillRect(mx,ly-1.5,bw,3);
+
+  // Glow shadow
+  ctx.shadowColor='rgba(255,165,0,0.8)';
+  ctx.shadowBlur=12;
+  const grad=ctx.createLinearGradient(mx,0,mx+bw,0);
+  grad.addColorStop(0,'transparent');
+  grad.addColorStop(0.15,'rgba(255,165,0,0.5)');
+  grad.addColorStop(0.5,'rgba(255,200,50,0.95)');
+  grad.addColorStop(0.85,'rgba(255,165,0,0.5)');
+  grad.addColorStop(1,'transparent');
+  ctx.fillStyle=grad;
+  ctx.fillRect(mx,ly-3,bw,6);
+  ctx.shadowBlur=0;
 }
 
+// ── Barcode found — orange box ─────────────────────────────────
 function drawBarcodeBox(pts){
   syncCanvas();
   ctx.clearRect(0,0,overlay.width,overlay.height);
-  if(!pts||pts.length<2)return;
+  if(!pts||pts.length<2) return;
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   for(let p of pts){
     minX=Math.min(minX,p.getX());minY=Math.min(minY,p.getY());
     maxX=Math.max(maxX,p.getX());maxY=Math.max(maxY,p.getY());
   }
-  const pad=16;
-  minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
-  ctx.fillStyle='rgba(255,165,0,0.18)';
+  const pad=20;minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+
+  ctx.shadowColor='rgba(255,165,0,0.6)';
+  ctx.shadowBlur=16;
+  ctx.fillStyle='rgba(255,165,0,0.15)';
   ctx.fillRect(minX,minY,maxX-minX,maxY-minY);
-  ctx.strokeStyle='rgba(255,165,0,1)';ctx.lineWidth=3;
+  ctx.strokeStyle='rgba(255,165,0,1)';
+  ctx.lineWidth=5;
   ctx.strokeRect(minX,minY,maxX-minX,maxY-minY);
+  ctx.shadowBlur=0;
+
   ctx.fillStyle='rgba(255,165,0,1)';
   for(let p of pts){
-    ctx.beginPath();ctx.arc(p.getX(),p.getY(),5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(p.getX(),p.getY(),7,0,Math.PI*2);ctx.fill();
   }
 }
 
+// ── Lookup ─────────────────────────────────────────────────────
 function parseCookText(txt){
-  if(!txt)return null;
+  if(!txt) return null;
   txt=txt.toLowerCase();
   let t=null,m=null;
   let mc=txt.match(/(\d{2,3})\s*(?:\u00b0|degrees?)?\s*c\b/);
-  if(mc)t=parseInt(mc[1]);
-  if(!t){
-    let mf=txt.match(/(\d{3})\s*(?:\u00b0|degrees?)?\s*f\b/);
-    if(mf)t=Math.round((parseInt(mf[1])-32)*5/9);
-  }
+  if(mc) t=parseInt(mc[1]);
+  if(!t){let mf=txt.match(/(\d{3})\s*(?:\u00b0|degrees?)?\s*f\b/);
+    if(mf) t=Math.round((parseInt(mf[1])-32)*5/9);}
   let mm=txt.match(/(\d+)(?:\s*[-to]\s*\d+)?\s*min/);
-  if(mm)m=parseInt(mm[1]);
+  if(mm) m=parseInt(mm[1]);
   return(t&&m)?{temp:t,mins:m}:null;
 }
-
 function fallbackLookup(cats){
-  if(!cats)return null;
+  if(!cats) return null;
   let c=cats.toLowerCase();
   for(let f of fallback)
     for(let kw of f.kw)
-      if(c.includes(kw))return{temp:f.t,mins:f.m};
+      if(c.includes(kw)) return{temp:f.t,mins:f.m};
   return null;
 }
 
@@ -224,41 +294,71 @@ async function lookup(code){
   try{
     let r=await fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json');
     let d=await r.json();
-    if(d.status!==1)throw new Error('not found');
+    if(d.status!==1) throw new Error('not found');
     let p=d.product;
     let name=p.product_name||p.product_name_en||'Unknown product';
+    let desc=p.generic_name_en||p.generic_name||p.ingredients_text_en||'';
+    if(desc.length>120) desc=desc.substring(0,120)+'...';
+    let img=p.image_front_url||p.image_url||'';
     let cookTxt=p.preparation_en||p.cooking_instructions||p.preparation||'';
     let cooking=parseCookText(cookTxt)||fallbackLookup(p.categories_en||p.categories||'');
-    if(!cooking){cooking={temp:180,mins:20};name+=' (default)';}
-    showResult(name,cooking.temp,cooking.mins);
+    if(!cooking){cooking={temp:180,mins:20};name+=' (default settings)';}
+    showModal(name,desc,img,cooking.temp,cooking.mins);
   }catch(e){
-    showResult('Product (default settings)',180,20);
+    showModal('Unknown product','No product data found.',''  ,180,20);
   }
 }
 
-function showResult(name,temp,mins){
+// ── Modal ──────────────────────────────────────────────────────
+function showModal(name,desc,imgUrl,temp,mins){
   foundTemp=temp;foundMins=mins;
-  document.getElementById('status').style.display='none';
-  document.getElementById('result').style.display='block';
-  document.getElementById('btns').style.display='block';
-  document.getElementById('pname').textContent=name;
-  document.getElementById('ptemp').textContent=temp+'\u00b0C';
-  document.getElementById('ptimer').textContent=mins+' min';
+  document.getElementById('modal-name').textContent=name;
+  document.getElementById('modal-desc').textContent=desc||'No description available.';
+  document.getElementById('modal-temp').textContent=temp+'\u00b0C';
+  document.getElementById('modal-time').textContent=mins+' min';
+
+  const wrap=document.getElementById('modal-img-wrap');
+  wrap.innerHTML='';
+  if(imgUrl){
+    const img=document.createElement('img');
+    img.className='modal-img';
+    img.src=imgUrl;
+    img.onerror=()=>{wrap.innerHTML='<div class="modal-img-placeholder">&#128247;</div>';};
+    wrap.appendChild(img);
+  } else {
+    wrap.innerHTML='<div class="modal-img-placeholder">&#127869;</div>';
+  }
+
+  document.getElementById('status').textContent='Review product below...';
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  rescan();
+}
+
+function confirmFire(){
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('status').textContent='Starting oven...';
   startCountdown();
 }
 
+// ── Countdown ─────────────────────────────────────────────────
 function drawCountdown(n,total){
   const c=document.getElementById('cdcanvas');
   const x=c.getContext('2d');
-  x.clearRect(0,0,100,100);
-  x.beginPath();x.arc(50,50,42,0,Math.PI*2);
+  x.clearRect(0,0,90,90);
+  x.beginPath();x.arc(45,45,38,0,Math.PI*2);
   x.strokeStyle='#222';x.lineWidth=8;x.stroke();
   const prog=1-(n/total);
-  x.beginPath();x.arc(50,50,42,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
+  x.beginPath();x.arc(45,45,38,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
   x.strokeStyle='#ff4444';x.lineWidth=8;x.lineCap='round';x.stroke();
 }
 
 function startCountdown(){
+  document.getElementById('cdarea').style.display='block';
+  document.getElementById('btns').style.display='block';
   const total=5;let n=total;
   document.getElementById('cdnum').textContent=n;
   drawCountdown(n,total);
@@ -277,6 +377,8 @@ function fireOven(){
 
 function cancelIt(){
   if(cdInterval)clearInterval(cdInterval);
+  document.getElementById('cdarea').style.display='none';
+  document.getElementById('btns').style.display='none';
   stopCamera();
   window.location.href='http://'+getIP()+'/';
 }
@@ -289,10 +391,11 @@ function stopCamera(){
 function rescan(){
   if(cdInterval)clearInterval(cdInterval);
   scanning=true;
-  document.getElementById('result').style.display='none';
+  document.getElementById('cdarea').style.display='none';
   document.getElementById('btns').style.display='none';
-  document.getElementById('status').style.display='block';
   document.getElementById('status').textContent='Point camera at barcode...';
+  ctx.clearRect(0,0,overlay.width,overlay.height);
+  scanLineY=0;
   startScanLoop();
 }
 </script>
