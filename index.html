@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scan for Thermal Overlord</title>
+<title>Scan for Thermal Overload</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#000;color:#fff;font-family:monospace;max-width:400px;margin:auto}
@@ -13,8 +13,6 @@ h1{color:#00e5ff;font-size:16px;padding:12px 16px;background:#0d0d0d}
 input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-radius:4px;font-size:14px;font-family:monospace;flex:1}
 .savebtn{padding:8px 12px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:4px;cursor:pointer;font-family:monospace;font-weight:bold;white-space:nowrap}
 .torch{background:#1a1400;color:#ffcc00;border:1px solid #ffcc00;width:100%;padding:9px;border-radius:4px;cursor:pointer;font-family:monospace;font-weight:bold}
-
-/* Camera area */
 .wrap{position:relative;width:100%;overflow:hidden;background:#111;aspect-ratio:4/3}
 #interactive{width:100%;height:100%}
 #interactive video{width:100%;height:100%;object-fit:cover;display:block}
@@ -24,8 +22,6 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
 .vignette-bot{position:absolute;bottom:0;left:0;width:100%;height:28%;background:rgba(0,0,0,0.5)}
 .vignette-l{position:absolute;top:28%;left:0;width:6%;height:44%;background:rgba(0,0,0,0.5)}
 .vignette-r{position:absolute;top:28%;right:0;width:6%;height:44%;background:rgba(0,0,0,0.5)}
-.scan-box{position:absolute;top:28%;left:6%;width:88%;height:44%;border:none}
-/* Animated corner brackets */
 .corner{position:absolute;width:28px;height:28px}
 .corner::before,.corner::after{content:'';position:absolute;background:rgba(255,150,0,1);box-shadow:0 0 8px rgba(255,165,0,0.8)}
 .corner::before{width:4px;height:28px}
@@ -34,41 +30,39 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
 .corner.tr{top:28%;right:6%}.corner.tr::before{top:0;right:0}.corner.tr::after{top:0;right:0}
 .corner.bl{bottom:28%;left:6%}.corner.bl::before{bottom:0;left:0}.corner.bl::after{bottom:0;left:0}
 .corner.br{bottom:28%;right:6%}.corner.br::before{bottom:0;right:0}.corner.br::after{bottom:0;right:0}
-
-/* Scan line */
 .scan-line{position:absolute;left:6%;width:88%;height:3px;background:linear-gradient(90deg,transparent,rgba(255,200,50,0.9),transparent);box-shadow:0 0 12px rgba(255,165,0,0.9);animation:sweep 1.6s ease-in-out infinite}
-@keyframes sweep{
-  0%{top:28%}
-  50%{top:calc(72% - 3px)}
-  100%{top:28%}
-}
-
-/* Confidence bar */
+@keyframes sweep{0%{top:28%}50%{top:calc(72% - 3px)}100%{top:28%}}
 .conf-wrap{position:absolute;bottom:31%;left:10%;width:80%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px}
 .conf-bar{height:100%;width:0%;background:rgba(255,165,0,0.9);border-radius:3px;transition:width 0.1s}
-
 .info{padding:10px 16px;background:#0d0d0d;min-height:48px}
 #status{color:#888;font-size:13px;text-align:center;padding:6px 0}
 
 /* Modal */
-#modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:100;align-items:center;justify-content:center;padding:16px}
+#modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:100;align-items:flex-start;justify-content:center;padding:12px;overflow-y:auto}
 #modal.show{display:flex}
-.modal-box{background:#111;border:1px solid #333;border-radius:12px;max-width:360px;width:100%;overflow:hidden;animation:popIn .2s ease}
+.modal-box{background:#111;border:1px solid #333;border-radius:12px;max-width:360px;width:100%;overflow:hidden;animation:popIn .2s ease;margin:auto}
 @keyframes popIn{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
-.modal-img{width:100%;max-height:180px;object-fit:contain;background:#1a1a1a;display:block}
-.modal-img-ph{width:100%;height:100px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:36px}
-.modal-body{padding:16px}
-.modal-name{font-size:15px;font-weight:bold;color:#fff;margin-bottom:5px;line-height:1.4}
-.modal-desc{font-size:11px;color:#777;margin-bottom:12px;line-height:1.5;max-height:52px;overflow:hidden}
-.modal-cook{display:flex;gap:10px;margin-bottom:14px}
-.cook-pill{flex:1;background:#0d0d0d;border:1px solid #333;border-radius:8px;padding:10px;text-align:center}
-.cook-val{font-size:20px;font-weight:bold;color:#00e5ff}
-.cook-lbl{font-size:10px;color:#555;margin-top:2px}
+.modal-img{width:100%;max-height:160px;object-fit:contain;background:#1a1a1a;display:block}
+.modal-img-ph{width:100%;height:90px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:32px}
+.modal-body{padding:14px}
+.modal-name{font-size:14px;font-weight:bold;color:#fff;margin-bottom:6px;line-height:1.4}
+.modal-source{font-size:10px;margin-bottom:12px;padding:3px 8px;border-radius:10px;display:inline-block}
+.src-label{background:#003300;color:#44ff44}
+.src-category{background:#1a1a00;color:#ffcc00}
+.src-default{background:#330000;color:#ff6666}
+.modal-cook{display:flex;gap:8px;margin-bottom:12px}
+.cook-pill{flex:1;background:#0d0d0d;border:1px solid #333;border-radius:8px;padding:8px;text-align:center}
+.cook-lbl{font-size:9px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.cook-adj{display:flex;align-items:center;justify-content:center;gap:6px}
+.cook-val{font-size:18px;font-weight:bold;color:#00e5ff;min-width:52px;text-align:center}
+.adj-btn{width:28px;height:28px;border-radius:50%;background:#1a1a1a;border:1px solid #444;color:#fff;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none}
+.adj-btn:active{background:#333}
+.off-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 10px;background:#0a0a1a;border:1px solid #222;border-radius:6px}
+.off-row label{font-size:11px;color:#888;flex:1;cursor:pointer}
+.off-row input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#00e5ff}
 .modal-btns{display:flex;gap:8px}
-.btn-ok{flex:1;padding:13px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:6px;cursor:pointer;font-size:14px;font-family:monospace;font-weight:bold}
-.btn-no{flex:1;padding:13px;background:#330000;color:#ff4444;border:1px solid #ff4444;border-radius:6px;cursor:pointer;font-size:14px;font-family:monospace;font-weight:bold}
-
-/* Countdown */
+.btn-ok{flex:1;padding:12px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:6px;cursor:pointer;font-size:13px;font-family:monospace;font-weight:bold}
+.btn-no{flex:1;padding:12px;background:#330000;color:#ff4444;border:1px solid #ff4444;border-radius:6px;cursor:pointer;font-size:13px;font-family:monospace;font-weight:bold}
 #cdarea{display:none;padding:10px 16px;background:#0d0d0d;text-align:center}
 .cdwrap{position:relative;display:inline-block}
 .cdtxt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:26px;font-weight:bold;color:#ff4444}
@@ -80,7 +74,7 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
 </head>
 <body>
 
-<h1>&#128293; Thermal Overlord Scanner</h1>
+<h1>&#128293; Thermal Overload Scanner</h1>
 
 <div class="topbar">
   <div style="color:#555;font-size:11px">OVEN IP ADDRESS</div>
@@ -93,7 +87,6 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
 
 <div class="wrap">
   <div id="interactive" class="viewport"></div>
-  <!-- Vignette overlay -->
   <div class="scan-zone">
     <div class="vignette-top"></div>
     <div class="vignette-bot"></div>
@@ -102,7 +95,6 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
     <div class="scan-line" id="scanLine"></div>
     <div class="conf-wrap"><div class="conf-bar" id="confBar"></div></div>
   </div>
-  <!-- Corner brackets sit outside scan-zone so they layer on top -->
   <div class="corner tl"></div>
   <div class="corner tr"></div>
   <div class="corner bl"></div>
@@ -121,22 +113,33 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
   <button class="action again" onclick="rescan()">SCAN AGAIN</button>
 </div>
 
-<!-- Confirm modal -->
 <div id="modal">
   <div class="modal-box">
     <div id="modal-img-wrap"></div>
     <div class="modal-body">
       <div class="modal-name" id="modal-name"></div>
-      <div class="modal-desc" id="modal-desc"></div>
+      <span class="modal-source" id="modal-source"></span>
       <div class="modal-cook">
         <div class="cook-pill">
-          <div class="cook-val" id="modal-temp">--</div>
-          <div class="cook-lbl">TEMPERATURE</div>
+          <div class="cook-lbl">Temperature</div>
+          <div class="cook-adj">
+            <button class="adj-btn" onclick="adjustTemp(-5)">&#8722;</button>
+            <div class="cook-val" id="modal-temp">--</div>
+            <button class="adj-btn" onclick="adjustTemp(5)">+</button>
+          </div>
         </div>
         <div class="cook-pill">
-          <div class="cook-val" id="modal-time">--</div>
-          <div class="cook-lbl">COOK TIME</div>
+          <div class="cook-lbl">Cook Time</div>
+          <div class="cook-adj">
+            <button class="adj-btn" onclick="adjustTime(-1)">&#8722;</button>
+            <div class="cook-val" id="modal-time">--</div>
+            <button class="adj-btn" onclick="adjustTime(1)">+</button>
+          </div>
         </div>
+      </div>
+      <div class="off-row">
+        <input type="checkbox" id="offToggle" checked>
+        <label for="offToggle">Contribute cooking times to Open Food Facts</label>
       </div>
       <div class="modal-btns">
         <button class="btn-no" onclick="closeModal()">CANCEL</button>
@@ -146,23 +149,56 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
   </div>
 </div>
 
-<!-- Quagga2 — much better 1D barcode accuracy than ZXing -->
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 <script>
+
+// ── Open Food Facts contribution credentials ──────────────────
+// Create a free account at world.openfoodfacts.org then fill these in
+const OFF_USER = 'thermaloverlord';
+const OFF_PASS = 'Nyrin2007';
+
+// ── Fallback cooking table ────────────────────────────────────
+// Checked against product name + all category fields
+// Listed most-specific first — pizza beats frozen-food generic
 const fallback=[
   {kw:['pizza'],t:220,m:18},
-  {kw:['fries','chips','wedges'],t:200,m:22},
-  {kw:['chicken','nugget','wing','tender'],t:190,m:25},
-  {kw:['fish','seafood','shrimp','prawn'],t:200,m:20},
-  {kw:['lasagna','lasagne','pasta bake'],t:180,m:45},
-  {kw:['pastry','pie','quiche','puff'],t:200,m:20},
-  {kw:['burger','patty'],t:200,m:15},
-  {kw:['spring roll','samosa','dumpling'],t:200,m:15},
-  {kw:['sausage','hot dog'],t:190,m:20},
-  {kw:['vegetable','veggie'],t:180,m:15}
+  {kw:['french fries','french frie','fries','wedges','potato wedge','tater tot','hash brown','hashbrown'],t:220,m:20},
+  {kw:['chips'],t:200,m:22},
+  {kw:['chicken nugget','nugget','chicken strip','chicken tender','chicken finger','popcorn chicken','chicken bite'],t:200,m:22},
+  {kw:['chicken wing','buffalo wing'],t:200,m:25},
+  {kw:['chicken breast','chicken thigh','chicken drumstick'],t:190,m:30},
+  {kw:['chicken'],t:190,m:25},
+  {kw:['fish stick','fish finger','fish fillet','breaded fish','fish cake'],t:200,m:20},
+  {kw:['shrimp','prawn'],t:200,m:12},
+  {kw:['calamari','squid ring'],t:200,m:15},
+  {kw:['fish'],t:200,m:20},
+  {kw:['lasagna','lasagne'],t:185,m:50},
+  {kw:['mac and cheese','macaroni and cheese','mac & cheese','mac n cheese'],t:180,m:25},
+  {kw:['pasta bake','pasta'],t:180,m:30},
+  {kw:['pot pie','chicken pot pie','meat pie','shepherd pie','shepherds pie'],t:200,m:40},
+  {kw:['sausage roll'],t:200,m:20},
+  {kw:['spring roll','egg roll'],t:200,m:15},
+  {kw:['samosa'],t:200,m:18},
+  {kw:['dumpling','pierogi','gyoza','perogies'],t:190,m:15},
+  {kw:['quiche'],t:185,m:35},
+  {kw:['croissant','puff pastry','turnover'],t:200,m:18},
+  {kw:['pastry'],t:200,m:20},
+  {kw:['burger','beef patty','hamburger'],t:200,m:15},
+  {kw:['hot dog','corn dog','wiener'],t:190,m:12},
+  {kw:['sausage','bratwurst','brat','kielbasa'],t:190,m:20},
+  {kw:['mozzarella stick','cheese stick','cheese bite'],t:210,m:10},
+  {kw:['onion ring'],t:210,m:15},
+  {kw:['jalapeno popper','jalapeño popper'],t:200,m:12},
+  {kw:['waffle','pancake','french toast'],t:180,m:12},
+  {kw:['breakfast sandwich','breakfast burrito'],t:180,m:15},
+  {kw:['burrito','chimichanga','enchilada'],t:180,m:25},
+  {kw:['wrap'],t:180,m:20},
+  {kw:['broccoli','cauliflower','mixed vegetable','frozen vegetable'],t:200,m:15},
+  {kw:['vegetable','veggie'],t:180,m:15},
+  {kw:['frozen meal','frozen dinner','frozen entrée','frozen entree'],t:180,m:25},
 ];
 
-// IP handling
+// ── IP ────────────────────────────────────────────────────────
 const ipInput=document.getElementById('ip');
 const urlIP=new URLSearchParams(window.location.search).get('ip');
 ipInput.value=urlIP||localStorage.getItem('ovenIP')||'192.168.4.1';
@@ -170,185 +206,169 @@ if(urlIP)localStorage.setItem('ovenIP',urlIP);
 function saveIP(){localStorage.setItem('ovenIP',ipInput.value.trim());ipInput.blur();}
 function getIP(){return ipInput.value.trim()||'192.168.4.1';}
 
-let foundTemp=0, foundMins=0, cdInterval=null;
+let foundTemp=0, foundMins=0, foundCode='', foundSource='default', cdInterval=null;
 let videoTrack=null, torchOn=false, quaggaRunning=false;
-
-// Confidence: require same code 3 times before accepting
-const REQUIRED_HITS = 3;
-let codeCounts = {};
-let lastAccepted = null;
+const REQUIRED_HITS=3;
+let codeCounts={}, lastAccepted=null;
 
 function toggleTorch(){
-  if(!videoTrack){
-    // Try to get track from video element
-    const v=document.querySelector('#interactive video');
-    if(v&&v.srcObject) videoTrack=v.srcObject.getVideoTracks()[0];
-  }
-  if(!videoTrack) return;
+  if(!videoTrack){const v=document.querySelector('#interactive video');if(v&&v.srcObject)videoTrack=v.srcObject.getVideoTracks()[0];}
+  if(!videoTrack)return;
   torchOn=!torchOn;
   videoTrack.applyConstraints({advanced:[{torch:torchOn}]}).catch(()=>{
-    document.getElementById('torchbtn').textContent='No flashlight available';
-    torchOn=false;
+    document.getElementById('torchbtn').textContent='No flashlight available';torchOn=false;
   });
-  document.getElementById('torchbtn').textContent=
-    '\uD83D\uDD26 FLASHLIGHT: '+(torchOn?'ON':'OFF');
+  document.getElementById('torchbtn').textContent='\uD83D\uDD26 FLASHLIGHT: '+(torchOn?'ON':'OFF');
 }
 
-function setStatus(txt){document.getElementById('status').textContent=txt;}
-function setConf(pct){document.getElementById('confBar').style.width=pct+'%';}
+function setStatus(t){document.getElementById('status').textContent=t;}
+function setConf(p){document.getElementById('confBar').style.width=p+'%';}
 
+// ── Quagga2 ───────────────────────────────────────────────────
 function initQuagga(){
-  codeCounts={};
-  lastAccepted=null;
-  setConf(0);
-
+  codeCounts={};lastAccepted=null;setConf(0);
   Quagga.init({
     inputStream:{
-      name:'Live',
-      type:'LiveStream',
+      name:'Live',type:'LiveStream',
       target:document.getElementById('interactive'),
-      constraints:{
-        facingMode:'environment',
-        width:{ideal:1280},
-        height:{ideal:720}
-      },
-      // Restrict decode area to the centre 44% height strip
-      // This is the single biggest accuracy improvement
-      area:{
-        top:'28%',
-        right:'6%',
-        left:'6%',
-        bottom:'28%'
-      }
+      constraints:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},
+      area:{top:'28%',right:'6%',left:'6%',bottom:'28%'}
     },
-    locator:{
-      patchSize:'medium',    // medium = good balance of speed/accuracy
-      halfSample:true        // faster processing
-    },
-    numOfWorkers:4,
-    frequency:15,            // decode attempts per second
+    locator:{patchSize:'medium',halfSample:true},
+    numOfWorkers:4,frequency:15,
     decoder:{
-      // Only the formats found on food packaging
-      readers:[
-        'ean_reader',
-        'upc_reader',
-        'upc_e_reader',
-        'ean_8_reader'
-      ],
-      debug:{
-        showCanvas:false,
-        showPatches:false,
-        showFoundPatches:false,
-        showSkeleton:false,
-        showLabels:false,
-        showPatchLabels:false,
-        showRemainingPatchLabels:false
-      }
+      readers:['ean_reader','upc_reader','upc_e_reader','ean_8_reader'],
+      debug:{showCanvas:false,showPatches:false,showFoundPatches:false,
+             showSkeleton:false,showLabels:false,showPatchLabels:false,
+             showRemainingPatchLabels:false}
     },
     locate:true
-  }, function(err){
-    if(err){
-      setStatus('Camera error: '+err.message);
-      return;
-    }
-    Quagga.start();
-    quaggaRunning=true;
+  },function(err){
+    if(err){setStatus('Camera error: '+err.message);return;}
+    Quagga.start();quaggaRunning=true;
     setStatus('Point camera at barcode on packaging...');
-
-    // Grab video track for torch control
     const v=document.querySelector('#interactive video');
-    if(v&&v.srcObject) videoTrack=v.srcObject.getVideoTracks()[0];
+    if(v&&v.srcObject)videoTrack=v.srcObject.getVideoTracks()[0];
   });
-
-  // Every decoded result — count occurrences
   Quagga.onDetected(function(result){
-    if(!result||!result.codeResult) return;
+    if(!result||!result.codeResult)return;
     const code=result.codeResult.code;
-    const format=result.codeResult.format;
-
-    // Ignore obviously wrong codes
-    if(!code||code.length<6) return;
-
-    // Increment hit count for this code
+    if(!code||code.length<6)return;
     codeCounts[code]=(codeCounts[code]||0)+1;
     const hits=codeCounts[code];
-    const pct=Math.min(100, Math.round(hits/REQUIRED_HITS*100));
-    setConf(pct);
+    setConf(Math.min(100,Math.round(hits/REQUIRED_HITS*100)));
     setStatus('Reading... ('+hits+'/'+REQUIRED_HITS+') '+code);
-
-    if(hits>=REQUIRED_HITS && code!==lastAccepted){
-      lastAccepted=code;
-      stopQuagga();
+    if(hits>=REQUIRED_HITS&&code!==lastAccepted){
+      lastAccepted=code;stopQuagga();
       document.getElementById('scanLine').style.animationPlayState='paused';
-      setStatus('Confirmed! Looking up product...');
-      setConf(100);
+      setStatus('Confirmed! Looking up product...');setConf(100);
       lookup(code);
     }
   });
-
-  // Visual feedback for partial detections
-  Quagga.onProcessed(function(result){
-    // Don't draw debug overlays — Quagga's canvas is hidden
-  });
 }
+function stopQuagga(){if(quaggaRunning){Quagga.stop();quaggaRunning=false;}}
 
-function stopQuagga(){
-  if(quaggaRunning){
-    Quagga.stop();
-    quaggaRunning=false;
-  }
-}
-
-// Cooking lookup
+// ── Parse cooking text for temp + time ───────────────────────
 function parseCookText(txt){
-  if(!txt) return null;
+  if(!txt)return null;
   txt=txt.toLowerCase();
   let t=null,m=null;
-  let mc=txt.match(/(\d{2,3})\s*(?:\u00b0|degrees?)?\s*c\b/);
-  if(mc) t=parseInt(mc[1]);
-  if(!t){
-    let mf=txt.match(/(\d{3})\s*(?:\u00b0|degrees?)?\s*f\b/);
-    if(mf) t=Math.round((parseInt(mf[1])-32)*5/9);
-  }
-  let mm=txt.match(/(\d+)(?:\s*[-to]\s*\d+)?\s*min/);
-  if(mm) m=parseInt(mm[1]);
-  return(t&&m)?{temp:t,mins:m}:null;
+  let mc=txt.match(/(\d{3})\s*(?:\u00b0|degrees?)?\s*c\b/);
+  if(mc)t=parseInt(mc[1]);
+  if(!t){let mf=txt.match(/(\d{3})\s*(?:\u00b0|degrees?)?\s*f\b/);
+    if(mf)t=Math.round((parseInt(mf[1])-32)*5/9);}
+  let mm=txt.match(/(\d+)\s*(?:to|-)\s*\d+\s*min/);
+  if(!mm)mm=txt.match(/(\d+)\s*min/);
+  if(mm)m=parseInt(mm[1]);
+  if(!m){let mh=txt.match(/(\d+\.?\d*)\s*hour/);if(mh)m=Math.round(parseFloat(mh[1])*60);}
+  return(t&&m&&t>=100&&t<=280&&m>=5&&m<=120)?{temp:t,mins:m}:null;
 }
-function fallbackLookup(cats){
-  if(!cats) return null;
-  let c=cats.toLowerCase();
-  for(let f of fallback)
-    for(let kw of f.kw)
-      if(c.includes(kw)) return{temp:f.t,mins:f.m};
+
+// ── Keyword fallback — checks all text ───────────────────────
+function fallbackLookup(allText){
+  const t=allText.toLowerCase();
+  for(const f of fallback)
+    for(const kw of f.kw)
+      if(t.includes(kw))return{temp:f.t,mins:f.m};
   return null;
 }
 
+// ── Main product lookup ───────────────────────────────────────
 async function lookup(code){
   try{
     const r=await fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json');
     const d=await r.json();
-    if(d.status!==1) throw new Error('not found');
+    if(d.status!==1)throw new Error('not found');
     const p=d.product;
-    const name=p.product_name||p.product_name_en||'Unknown product';
-    let desc=p.generic_name_en||p.generic_name||p.ingredients_text_en||'';
-    if(desc.length>120) desc=desc.substring(0,120)+'...';
+
+    const name=p.product_name||p.product_name_en||p.product_name_fr||'Unknown product';
+    let desc=p.generic_name_en||p.generic_name||'';
+
+    // Try every preparation/cooking field in every language
+    const cookFields=Object.keys(p)
+      .filter(k=>k.startsWith('preparation')||k.startsWith('cooking'))
+      .map(k=>p[k]).filter(Boolean);
+    let cooking=parseCookText(cookFields.join(' '));
+    let source='label';
+
+    // If nothing on the label, search name + all category fields
+    if(!cooking){
+      const searchText=[
+        p.product_name, p.product_name_en, p.product_name_fr,
+        p.generic_name_en, p.generic_name,
+        p.categories_en, p.categories,
+        (p.categories_tags||[]).join(' '),
+        p.food_groups_en, p.labels_en
+      ].filter(Boolean).join(' ');
+      cooking=fallbackLookup(searchText);
+      source=cooking?'category':'default';
+    }
+
+    if(!cooking)cooking={temp:180,mins:20};
+
     const img=p.image_front_url||p.image_url||'';
-    const cookTxt=p.preparation_en||p.cooking_instructions||p.preparation||'';
-    let cooking=parseCookText(cookTxt)||fallbackLookup(p.categories_en||p.categories||'');
-    let displayName=name;
-    if(!cooking){cooking={temp:180,mins:20};displayName+=' (default settings)';}
-    showModal(displayName,desc,img,cooking.temp,cooking.mins);
+    showModal(name,desc,img,cooking.temp,cooking.mins,source,code);
   }catch(e){
-    showModal('Unknown product','No product data found.','',180,20);
+    showModal('Unknown product','','',180,20,'default',code||'');
   }
 }
 
-function showModal(name,desc,imgUrl,temp,mins){
-  foundTemp=temp;foundMins=mins;
+// ── Modal controls ────────────────────────────────────────────
+function adjustTemp(d){
+  foundTemp=Math.max(30,Math.min(280,foundTemp+d));
+  document.getElementById('modal-temp').textContent=foundTemp+'\u00b0C';
+}
+function adjustTime(d){
+  foundMins=Math.max(1,Math.min(120,foundMins+d));
+  document.getElementById('modal-time').textContent=foundMins+' min';
+}
+
+function showModal(name,desc,imgUrl,temp,mins,source,code){
+  foundTemp=temp;foundMins=mins;foundSource=source;foundCode=code;
   document.getElementById('modal-name').textContent=name;
-  document.getElementById('modal-desc').textContent=desc||'No description available.';
   document.getElementById('modal-temp').textContent=temp+'\u00b0C';
   document.getElementById('modal-time').textContent=mins+' min';
+
+  // Source badge
+  const src=document.getElementById('modal-source');
+  if(source==='label'){
+    src.textContent='\u2713 Cooking info from label';
+    src.className='modal-source src-label';
+    // Don't offer to contribute if OFF already has the data
+    document.getElementById('offToggle').checked=false;
+    document.getElementById('offToggle').disabled=true;
+  }else if(source==='category'){
+    src.textContent='\u26a1 Estimated from product type — adjust if needed';
+    src.className='modal-source src-category';
+    document.getElementById('offToggle').checked=true;
+    document.getElementById('offToggle').disabled=false;
+  }else{
+    src.textContent='\u26a0 Default — please adjust before starting';
+    src.className='modal-source src-default';
+    document.getElementById('offToggle').checked=true;
+    document.getElementById('offToggle').disabled=false;
+  }
+
   const wrap=document.getElementById('modal-img-wrap');
   wrap.innerHTML='';
   if(imgUrl){
@@ -356,7 +376,7 @@ function showModal(name,desc,imgUrl,temp,mins){
     img.className='modal-img';img.src=imgUrl;
     img.onerror=()=>{wrap.innerHTML='<div class="modal-img-ph">&#128247;</div>';};
     wrap.appendChild(img);
-  } else {
+  }else{
     wrap.innerHTML='<div class="modal-img-ph">&#127869;</div>';
   }
   document.getElementById('modal').classList.add('show');
@@ -372,32 +392,62 @@ function confirmFire(){
   startCountdown();
 }
 
+// ── Open Food Facts contribution ──────────────────────────────
+// Silently posts cooking instructions back to OFF after the oven fires
+// Only runs if the user ticked the checkbox and we don't have label data
+async function contributeToOFF(code,tempC,mins){
+  if(!code||code.length<6)return;
+  if(OFF_USER==='YOUR_OFF_USERNAME')return; // credentials not set yet
+
+  const text=
+    `Preheat oven to ${tempC}\u00b0C (${Math.round(tempC*9/5+32)}\u00b0F). `+
+    `Bake for ${mins} minutes.`;
+
+  const body=new URLSearchParams({
+    code:           code,
+    user_id:        OFF_USER,
+    password:       OFF_PASS,
+    preparation_en: text,
+    comment:        'Cooking instructions contributed via Thermal Overload smart oven app'
+  });
+
+  try{
+    await fetch('https://world.openfoodfacts.org/cgi/product_jqm2.pl',{
+      method:'POST',body
+    });
+    console.log('OFF contribution sent: '+text);
+  }catch(e){
+    console.log('OFF contribution failed silently: '+e.message);
+  }
+}
+
+// ── Countdown ─────────────────────────────────────────────────
 function drawCountdown(n,total){
-  const c=document.getElementById('cdcanvas');
-  const x=c.getContext('2d');
+  const c=document.getElementById('cdcanvas'),x=c.getContext('2d');
   x.clearRect(0,0,90,90);
-  x.beginPath();x.arc(45,45,38,0,Math.PI*2);
-  x.strokeStyle='#222';x.lineWidth=8;x.stroke();
-  const prog=1-(n/total);
-  x.beginPath();x.arc(45,45,38,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
+  x.beginPath();x.arc(45,45,38,0,Math.PI*2);x.strokeStyle='#222';x.lineWidth=8;x.stroke();
+  x.beginPath();x.arc(45,45,38,-Math.PI/2,-Math.PI/2+(1-n/total)*Math.PI*2);
   x.strokeStyle='#ff4444';x.lineWidth=8;x.lineCap='round';x.stroke();
 }
 function startCountdown(){
   document.getElementById('cdarea').style.display='block';
   document.getElementById('btns').style.display='block';
-  const total=5;let n=total;
-  document.getElementById('cdnum').textContent=n;
-  drawCountdown(n,total);
+  let n=5;
+  document.getElementById('cdnum').textContent=n;drawCountdown(n,5);
   cdInterval=setInterval(()=>{
-    n--;
-    document.getElementById('cdnum').textContent=n;
-    drawCountdown(n,total);
+    n--;document.getElementById('cdnum').textContent=n;drawCountdown(n,5);
     if(n<=0){clearInterval(cdInterval);fireOven();}
   },1000);
 }
-function fireOven(){
+
+async function fireOven(){
+  // Contribute to OFF if checkbox ticked and we didn't get data from label
+  if(document.getElementById('offToggle').checked && foundSource!=='label'){
+    await contributeToOFF(foundCode,foundTemp,foundMins);
+  }
   window.location.href='http://'+getIP()+'/scanned?temp='+foundTemp+'&timer='+foundMins;
 }
+
 function cancelIt(){
   if(cdInterval)clearInterval(cdInterval);
   stopQuagga();
@@ -411,7 +461,6 @@ function rescan(){
   initQuagga();
 }
 
-// Start on load
 initQuagga();
 </script>
 </body>
