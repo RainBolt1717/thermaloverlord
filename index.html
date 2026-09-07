@@ -18,8 +18,6 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
 .info{padding:10px 16px;background:#0d0d0d;min-height:48px}
 #status{color:#888;font-size:13px;text-align:center;padding:6px 0}
-
-/* ── Confirm modal ── */
 #modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:100;align-items:center;justify-content:center;padding:16px}
 #modal.show{display:flex}
 .modal-box{background:#111;border:1px solid #333;border-radius:12px;max-width:360px;width:100%;overflow:hidden;animation:popIn .2s ease}
@@ -36,8 +34,6 @@ input{background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px;border-rad
 .modal-btns{display:flex;gap:8px}
 .btn-confirm{flex:1;padding:13px;background:#003300;color:#44ff44;border:1px solid #44ff44;border-radius:6px;cursor:pointer;font-size:14px;font-family:monospace;font-weight:bold}
 .btn-cancel{flex:1;padding:13px;background:#330000;color:#ff4444;border:1px solid #ff4444;border-radius:6px;cursor:pointer;font-size:14px;font-family:monospace;font-weight:bold}
-
-/* ── Countdown ── */
 .cdwrap{text-align:center;margin:10px 0;position:relative;display:inline-block;left:50%;transform:translateX(-50%)}
 .cdtxt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:bold;color:#ff4444}
 .btns{padding:0 16px 16px;display:none}
@@ -52,7 +48,7 @@ button.action{padding:12px;border-radius:4px;border:none;cursor:pointer;font-siz
 <h1>&#128293; Thermal Overlord Scanner</h1>
 
 <div class="topbar">
-  <div class="lbl" style="color:#555;font-size:11px">OVEN IP ADDRESS</div>
+  <div style="color:#555;font-size:11px">OVEN IP ADDRESS</div>
   <div class="iprow">
     <input id="ip" type="text" placeholder="192.168.4.1">
     <button class="savebtn" onclick="saveIP()">SAVE</button>
@@ -65,23 +61,18 @@ button.action{padding:12px;border-radius:4px;border:none;cursor:pointer;font-siz
   <canvas id="overlay"></canvas>
 </div>
 
-<div class="info">
-  <div id="status">Starting camera...</div>
-</div>
-
+<div class="info"><div id="status">Starting camera...</div></div>
 <div id="cdarea">
   <div class="cdwrap">
     <canvas id="cdcanvas" width="90" height="90"></canvas>
     <div class="cdtxt" id="cdnum">5</div>
   </div>
 </div>
-
 <div class="btns" id="btns">
   <button class="action cancel-a" onclick="cancelIt()">CANCEL</button>
   <button class="action again" onclick="rescan()">SCAN AGAIN</button>
 </div>
 
-<!-- Confirm modal -->
 <div id="modal">
   <div class="modal-box">
     <div id="modal-img-wrap"></div>
@@ -124,12 +115,11 @@ const fallback=[
 const video   = document.getElementById('video');
 const overlay = document.getElementById('overlay');
 const ctx     = overlay.getContext('2d');
-let scanning=true, reader=null, cdInterval=null;
+let scanning=true, reader=null, cdInterval=null, animRAF=null;
 let foundTemp=0, foundMins=0;
 let scanLineY=0, scanLineDir=1;
 let videoTrack=null, torchOn=false;
 
-// IP
 const ipInput=document.getElementById('ip');
 const urlIP=new URLSearchParams(window.location.search).get('ip');
 ipInput.value=urlIP||localStorage.getItem('ovenIP')||'192.168.4.1';
@@ -144,7 +134,6 @@ function syncCanvas(){
 video.addEventListener('loadedmetadata',syncCanvas);
 window.addEventListener('resize',syncCanvas);
 
-// Camera
 navigator.mediaDevices.getUserMedia({
   video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
 }).then(stream=>{
@@ -175,99 +164,143 @@ function startScanLoop(){
     if(result){
       scanning=false;
       reader.reset();
-      drawBarcodeBox(result.getResultPoints());
-      setTimeout(()=>lookup(result.getText()),300);
+      // Animate brackets shrinking onto barcode then lookup
+      animateLock(result.getResultPoints(), result.getText());
     } else {
       drawScanning();
     }
   });
 }
 
-// ── Scanning overlay — thick brackets + fast line ──────────────
+// ── Scanning overlay ───────────────────────────────────────────
+function getScanFrame(){
+  const w=overlay.width, h=overlay.height;
+  const mx=w*0.08, my=h*0.06;
+  return {x:mx, y:my, w:w-mx*2, h:h-my*2};
+}
+
+function drawBrackets(x,y,bw,bh,alpha,cornerSize){
+  const bl=Math.min(cornerSize, bw*0.35, bh*0.35);
+  ctx.strokeStyle=`rgba(255,150,0,${alpha})`;
+  ctx.lineWidth=5;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.shadowColor=`rgba(255,165,0,${alpha*0.7})`;
+  ctx.shadowBlur=10;
+  ctx.beginPath();ctx.moveTo(x,y+bl);ctx.lineTo(x,y);ctx.lineTo(x+bl,y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+bw-bl,y);ctx.lineTo(x+bw,y);ctx.lineTo(x+bw,y+bl);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y+bh-bl);ctx.lineTo(x,y+bh);ctx.lineTo(x+bl,y+bh);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+bw-bl,y+bh);ctx.lineTo(x+bw,y+bh);ctx.lineTo(x+bw,y+bh-bl);ctx.stroke();
+  ctx.shadowBlur=0;
+  // Corner dots
+  ctx.fillStyle=`rgba(255,165,0,${alpha})`;
+  [[x,y],[x+bw,y],[x,y+bh],[x+bw,y+bh]].forEach(([px,py])=>{
+    ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.fill();
+  });
+}
+
 function drawScanning(){
   syncCanvas();
   ctx.clearRect(0,0,overlay.width,overlay.height);
   const w=overlay.width, h=overlay.height;
-  const mx=w*0.08, my=h*0.06;
-  const bw=w-mx*2, bh=h-my*2;
-  const bl=52; // bracket arm length — longer
-  const lw=5;  // line width — thicker
+  const {x,y,w:bw,h:bh}=getScanFrame();
 
-  // Semi-transparent dark surround outside brackets
-  ctx.fillStyle='rgba(0,0,0,0.35)';
-  ctx.fillRect(0,0,w,my);
-  ctx.fillRect(0,my+bh,w,h-my-bh);
-  ctx.fillRect(0,my,mx,bh);
-  ctx.fillRect(mx+bw,my,w-mx-bw,bh);
+  // Dark vignette
+  ctx.fillStyle='rgba(0,0,0,0.38)';
+  ctx.fillRect(0,0,w,y);
+  ctx.fillRect(0,y+bh,w,h-y-bh);
+  ctx.fillRect(0,y,x,bh);
+  ctx.fillRect(x+bw,y,w-x-bw,bh);
 
-  // Corner brackets — thick orange
-  ctx.strokeStyle='rgba(255,150,0,1)';
-  ctx.lineWidth=lw;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
+  drawBrackets(x,y,bw,bh,1,52);
 
-  // TL
-  ctx.beginPath();ctx.moveTo(mx,my+bl);ctx.lineTo(mx,my);ctx.lineTo(mx+bl,my);ctx.stroke();
-  // TR
-  ctx.beginPath();ctx.moveTo(mx+bw-bl,my);ctx.lineTo(mx+bw,my);ctx.lineTo(mx+bw,my+bl);ctx.stroke();
-  // BL
-  ctx.beginPath();ctx.moveTo(mx,my+bh-bl);ctx.lineTo(mx,my+bh);ctx.lineTo(mx+bl,my+bh);ctx.stroke();
-  // BR
-  ctx.beginPath();ctx.moveTo(mx+bw-bl,my+bh);ctx.lineTo(mx+bw,my+bh);ctx.lineTo(mx+bw,my+bh-bl);ctx.stroke();
-
-  // Corner glow dots
-  ctx.fillStyle='rgba(255,165,0,0.9)';
-  [[mx,my],[mx+bw,my],[mx,my+bh],[mx+bw,my+bh]].forEach(([px,py])=>{
-    ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);ctx.fill();
-  });
-
-  // Scan line — faster (3.5px/frame) and thicker
+  // Animated scan line
   scanLineY+=scanLineDir*3.5;
   if(scanLineY>bh||scanLineY<0) scanLineDir*=-1;
-  const ly=my+scanLineY;
-
-  // Glow shadow
+  const ly=y+scanLineY;
   ctx.shadowColor='rgba(255,165,0,0.8)';
-  ctx.shadowBlur=12;
-  const grad=ctx.createLinearGradient(mx,0,mx+bw,0);
+  ctx.shadowBlur=14;
+  const grad=ctx.createLinearGradient(x,0,x+bw,0);
   grad.addColorStop(0,'transparent');
-  grad.addColorStop(0.15,'rgba(255,165,0,0.5)');
-  grad.addColorStop(0.5,'rgba(255,200,50,0.95)');
-  grad.addColorStop(0.85,'rgba(255,165,0,0.5)');
+  grad.addColorStop(0.1,'rgba(255,165,0,0.4)');
+  grad.addColorStop(0.5,'rgba(255,200,50,1)');
+  grad.addColorStop(0.9,'rgba(255,165,0,0.4)');
   grad.addColorStop(1,'transparent');
   ctx.fillStyle=grad;
-  ctx.fillRect(mx,ly-3,bw,6);
+  ctx.fillRect(x,ly-3,bw,6);
   ctx.shadowBlur=0;
 }
 
-// ── Barcode found — orange box ─────────────────────────────────
-function drawBarcodeBox(pts){
+// ── Lock animation — brackets shrink onto barcode ──────────────
+function animateLock(pts, code){
   syncCanvas();
-  ctx.clearRect(0,0,overlay.width,overlay.height);
-  if(!pts||pts.length<2) return;
+  if(!pts||pts.length<2){ lookup(code); return; }
+
+  // Target: bounding box of barcode
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   for(let p of pts){
     minX=Math.min(minX,p.getX());minY=Math.min(minY,p.getY());
     maxX=Math.max(maxX,p.getX());maxY=Math.max(maxY,p.getY());
   }
-  const pad=20;minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+  const pad=18;
+  const tx=minX-pad, ty=minY-pad, tw=maxX-minX+pad*2, th=maxY-minY+pad*2;
 
-  ctx.shadowColor='rgba(255,165,0,0.6)';
-  ctx.shadowBlur=16;
-  ctx.fillStyle='rgba(255,165,0,0.15)';
-  ctx.fillRect(minX,minY,maxX-minX,maxY-minY);
-  ctx.strokeStyle='rgba(255,165,0,1)';
-  ctx.lineWidth=5;
-  ctx.strokeRect(minX,minY,maxX-minX,maxY-minY);
-  ctx.shadowBlur=0;
+  // Start: full scan frame
+  const {x:sx,y:sy,w:sw,h:sh}=getScanFrame();
 
-  ctx.fillStyle='rgba(255,165,0,1)';
-  for(let p of pts){
-    ctx.beginPath();ctx.arc(p.getX(),p.getY(),7,0,Math.PI*2);ctx.fill();
+  const DURATION=420; // ms
+  const startTime=performance.now();
+
+  function ease(t){ return 1-Math.pow(1-t,3); } // cubic ease out
+
+  function frame(now){
+    const t=Math.min((now-startTime)/DURATION,1);
+    const e=ease(t);
+
+    // Interpolate bracket frame
+    const x=sx+(tx-sx)*e;
+    const y=sy+(ty-sy)*e;
+    const w=sw+(tw-sw)*e;
+    const h=sh+(th-sh)*e;
+
+    syncCanvas();
+    ctx.clearRect(0,0,overlay.width,overlay.height);
+
+    // Darken area outside brackets fading in
+    ctx.fillStyle=`rgba(0,0,0,${0.15+e*0.45})`;
+    const ow=overlay.width, oh=overlay.height;
+    ctx.fillRect(0,0,ow,y);
+    ctx.fillRect(0,y+h,ow,oh-y-h);
+    ctx.fillRect(0,y,x,h);
+    ctx.fillRect(x+w,y,ow-x-w,h);
+
+    // Draw shrinking brackets — corner size also shrinks proportionally
+    const cs=52+(24-52)*e; // from 52 down to 24
+    drawBrackets(x,y,w,h,1,cs);
+
+    // Pulse glow fill when locked
+    if(t>=1){
+      ctx.fillStyle='rgba(255,165,0,0.18)';
+      ctx.fillRect(x,y,w,h);
+      // Locked checkmark flash
+      ctx.fillStyle='rgba(255,165,0,0.9)';
+      ctx.font='bold 22px monospace';
+      ctx.textAlign='center';
+      ctx.fillText('LOCKED',x+w/2,y+h/2+8);
+    }
+
+    if(t<1){
+      animRAF=requestAnimationFrame(frame);
+    } else {
+      // Hold locked state briefly then lookup
+      setTimeout(()=>lookup(code), 350);
+    }
   }
+
+  animRAF=requestAnimationFrame(frame);
 }
 
-// ── Lookup ─────────────────────────────────────────────────────
+// ── Lookup + modal ─────────────────────────────────────────────
 function parseCookText(txt){
   if(!txt) return null;
   txt=txt.toLowerCase();
@@ -290,7 +323,7 @@ function fallbackLookup(cats){
 }
 
 async function lookup(code){
-  document.getElementById('status').textContent='Found '+code+' \u2014 looking up...';
+  document.getElementById('status').textContent='Looking up product...';
   try{
     let r=await fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json');
     let d=await r.json();
@@ -305,30 +338,26 @@ async function lookup(code){
     if(!cooking){cooking={temp:180,mins:20};name+=' (default settings)';}
     showModal(name,desc,img,cooking.temp,cooking.mins);
   }catch(e){
-    showModal('Unknown product','No product data found.',''  ,180,20);
+    showModal('Unknown product','No product data found.','',180,20);
   }
 }
 
-// ── Modal ──────────────────────────────────────────────────────
 function showModal(name,desc,imgUrl,temp,mins){
   foundTemp=temp;foundMins=mins;
   document.getElementById('modal-name').textContent=name;
   document.getElementById('modal-desc').textContent=desc||'No description available.';
   document.getElementById('modal-temp').textContent=temp+'\u00b0C';
   document.getElementById('modal-time').textContent=mins+' min';
-
   const wrap=document.getElementById('modal-img-wrap');
   wrap.innerHTML='';
   if(imgUrl){
     const img=document.createElement('img');
-    img.className='modal-img';
-    img.src=imgUrl;
+    img.className='modal-img';img.src=imgUrl;
     img.onerror=()=>{wrap.innerHTML='<div class="modal-img-placeholder">&#128247;</div>';};
     wrap.appendChild(img);
   } else {
     wrap.innerHTML='<div class="modal-img-placeholder">&#127869;</div>';
   }
-
   document.getElementById('status').textContent='Review product below...';
   document.getElementById('modal').classList.add('show');
 }
@@ -337,14 +366,12 @@ function closeModal(){
   document.getElementById('modal').classList.remove('show');
   rescan();
 }
-
 function confirmFire(){
   document.getElementById('modal').classList.remove('show');
   document.getElementById('status').textContent='Starting oven...';
   startCountdown();
 }
 
-// ── Countdown ─────────────────────────────────────────────────
 function drawCountdown(n,total){
   const c=document.getElementById('cdcanvas');
   const x=c.getContext('2d');
@@ -371,25 +398,23 @@ function startCountdown(){
 }
 
 function fireOven(){
-  const ip=getIP();
-  window.location.href='http://'+ip+'/scanned?temp='+foundTemp+'&timer='+foundMins;
+  window.location.href='http://'+getIP()+'/scanned?temp='+foundTemp+'&timer='+foundMins;
 }
-
 function cancelIt(){
   if(cdInterval)clearInterval(cdInterval);
+  if(animRAF)cancelAnimationFrame(animRAF);
   document.getElementById('cdarea').style.display='none';
   document.getElementById('btns').style.display='none';
   stopCamera();
   window.location.href='http://'+getIP()+'/';
 }
-
 function stopCamera(){
   if(reader)reader.reset();
   if(video.srcObject)video.srcObject.getTracks().forEach(t=>t.stop());
 }
-
 function rescan(){
   if(cdInterval)clearInterval(cdInterval);
+  if(animRAF)cancelAnimationFrame(animRAF);
   scanning=true;
   document.getElementById('cdarea').style.display='none';
   document.getElementById('btns').style.display='none';
